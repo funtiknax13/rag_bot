@@ -1,12 +1,9 @@
 import os
 
+from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
-from langchain_ollama import OllamaLLM
 
 from rag.retriever import retrieve
-
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:1.5b")
 
 _PROMPT = PromptTemplate(
     input_variables=["history", "context", "question"],
@@ -26,13 +23,38 @@ _PROMPT = PromptTemplate(
     ),
 )
 
-_llm: OllamaLLM | None = None
+_llm = None
 
 
-def _get_llm() -> OllamaLLM:
+def _get_llm():
     global _llm
-    if _llm is None:
-        _llm = OllamaLLM(model=OLLAMA_MODEL, base_url=OLLAMA_BASE_URL)
+    if _llm is not None:
+        return _llm
+
+    provider = os.getenv("LLM_PROVIDER", "ollama").lower()
+
+    if provider == "openai":
+        from langchain_openai import ChatOpenAI
+        _llm = ChatOpenAI(
+            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+            api_key=os.getenv("OPENAI_API_KEY"),
+        )
+
+    elif provider == "deepseek":
+        from langchain_openai import ChatOpenAI
+        _llm = ChatOpenAI(
+            model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
+            api_key=os.getenv("DEEPSEEK_API_KEY"),
+            base_url="https://api.deepseek.com/v1",
+        )
+
+    else:  # ollama (default)
+        from langchain_ollama import ChatOllama
+        _llm = ChatOllama(
+            model=os.getenv("OLLAMA_MODEL", "phi3:mini"),
+            base_url=os.getenv("OLLAMA_BASE_URL", "http://ollama:11434"),
+        )
+
     return _llm
 
 
@@ -49,4 +71,5 @@ def ask(question: str, history: list[dict]) -> str:
         history_text = "История диалога:\n" + "\n".join(lines) + "\n\n"
 
     prompt = _PROMPT.format(history=history_text, context=context, question=question)
-    return _get_llm().invoke(prompt)
+    chain = _get_llm() | StrOutputParser()
+    return chain.invoke(prompt)

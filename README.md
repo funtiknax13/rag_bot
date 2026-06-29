@@ -41,6 +41,32 @@ docker compose up -d bot
 - `/help` — справка
 - `/reindex` — переиндексировать папку `docs/`
 
+## Провайдеры LLM
+
+Бот поддерживает три режима работы — переключение через `LLM_PROVIDER` в `.env`:
+
+| `LLM_PROVIDER` | Описание | Что нужно |
+|---|---|---|
+| `ollama` | Локальная модель через Ollama | Docker + скачать модель |
+| `openai` | OpenAI API (GPT-4o, GPT-4o-mini и др.) | `OPENAI_API_KEY` |
+| `deepseek` | DeepSeek API (дешевле OpenAI, сравнимое качество) | `DEEPSEEK_API_KEY` |
+
+> Эмбеддинги (`nomic-embed-text`) всегда работают локально через Ollama — сервис `ollama` в Docker нужен при любом провайдере.
+
+**Пример для OpenAI:**
+```env
+LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini
+```
+
+**Пример для DeepSeek:**
+```env
+LLM_PROVIDER=deepseek
+DEEPSEEK_API_KEY=sk-...
+DEEPSEEK_MODEL=deepseek-chat
+```
+
 ## Настройки (.env)
 
 | Переменная | Описание | По умолчанию |
